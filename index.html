@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategieanalyse: Schröpfmaster</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Clinical Slate & Teal (Professional, Medical, Trustworthy) -->
+    <!-- Application Structure Plan: Das Dashboard-Layout ermöglicht eine nicht-lineare Exploration der Analyse. Navigation links (Desktop) bzw. oben (Mobile). Sektionen: 1. Executive Summary (Schneller Überblick), 2. Marktanalyse (Quantitative Daten zu AT/DACH), 3. Zielgruppen (Detaillierte Profile), 4. Wettbewerb (Scatter-Plot zur Positionierung), 5. ROI-Rechner (Interaktives Tool zur Simulation der Amortisation - entscheidend für B2B-Kaufentscheidungen), 6. SWOT & Strategie (Handlungsempfehlungen). Diese Struktur trennt Daten, Konkurrenz und Wirtschaftlichkeit logisch auf. -->
+    <!-- Visualization & Content Choices: 
+    1. Marktanteile -> Goal: Inform -> Doughnut Chart (Chart.js) -> Zeigt visuell die Verteilung der potenziellen B2B-Kunden in AT. 
+    2. Zielgruppen-Fit -> Goal: Compare -> Radar Chart (Chart.js) -> Vergleicht Budget, Volumen und Bedarf verschiedener Käufergruppen.
+    3. Wettbewerbsmatrix -> Goal: Relationships/Positioning -> Scatter Plot (Chart.js) -> X-Achse (Preis), Y-Achse (Funktionalität) positioniert Schröpfmaster visuell in der "White Space" Lücke.
+    4. ROI Simulation -> Goal: Engage/Change -> Interaktive HTML5 Range Sliders + Vanilla JS -> Therapeuten können ihre eigenen Preise/Volumina eingeben, um den Break-Even zu berechnen.
+    NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .chart-container { position: relative; width: 100%; max-width: 650px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        @media (max-width: 768px) { .chart-container { height: 300px; } }
+        .tab-content { display: none; animation: fadeIn 0.4s ease-in-out; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        input[type=range] { accent-color: #0d9488; }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row min-h-screen">
+
+    <nav class="w-full md:w-64 bg-slate-900 text-white flex flex-col shadow-xl z-10 sticky top-0 md:h-screen">
+        <div class="p-6">
+            <h1 class="text-2xl font-bold text-teal-400 tracking-tight">Schröpfmaster</h1>
+            <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider">Strategie- & Marktanalyse</p>
+        </div>
+        <div class="flex-1 px-4 space-y-2 overflow-y-auto">
+            <button onclick="switchTab('summary')" id="btn-summary" class="nav-btn w-full text-left px-4 py-3 rounded-lg bg-teal-600 text-white transition-colors">📄 Executive Summary</button>
+            <button onclick="switchTab('market')" id="btn-market" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">📊 Markt & Potenzial</button>
+            <button onclick="switchTab('targets')" id="btn-targets" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">🎯 Zielgruppen</button>
+            <button onclick="switchTab('competition')" id="btn-competition" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">⚙️ Wettbewerb</button>
+            <button onclick="switchTab('roi')" id="btn-roi" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">💰 ROI & Wirtschaftlichkeit</button>
+            <button onclick="switchTab('strategy')" id="btn-strategy" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">🚀 SWOT & Strategie</button>
+        </div>
+        <div class="p-4 text-xs text-slate-500 border-t border-slate-800">
+            Stand: 2024 | Fokus: AT / DACH
+        </div>
+    </nav>
+
+    <main class="flex-1 p-6 md:p-10 overflow-y-auto">
+
+        <section id="summary" class="tab-content active">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4 text-slate-800">Executive Summary</h2>
+                <p class="text-lg text-slate-600 mb-8 leading-relaxed">
+                    Diese Analyse bewertet das Marktpotenzial und die optimale strategische Positionierung für das professionelle Therapiegerät „Schröpfmaster“ (Preispunkt: ca. 5.000 €). Der Fokus liegt auf dem österreichischen B2B-Markt (Physiotherapeuten, Masseure, Wellness-Hotellerie) mit Ausblick auf den DACH-Raum. Die Untersuchung beleuchtet Wettbewerbsbarrieren, Investitionsverhalten der Zielgruppen und leitet eine klare Vertriebs- und Positionierungsstrategie ab.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-teal-500">
+                        <div class="text-sm text-slate-500 mb-1 uppercase tracking-wide">Total Addressable Market (AT)</div>
+                        <div class="text-3xl font-bold text-slate-800">~15.500 <span class="text-lg font-normal text-slate-500">Praxen/Hotels</span></div>
+                        <p class="text-sm text-slate-600 mt-2">Potenzielle B2B-Kunden in Österreich.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-blue-500">
+                        <div class="text-sm text-slate-500 mb-1 uppercase tracking-wide">Kern-Zielgruppe</div>
+                        <div class="text-2xl font-bold text-slate-800">Physiotherapie & Spa</div>
+                        <p class="text-sm text-slate-600 mt-2">Höchste Investitionsbereitschaft und ROI-Fokus.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-indigo-500">
+                        <div class="text-sm text-slate-500 mb-1 uppercase tracking-wide">Positionierungs-Empfehlung</div>
+                        <div class="text-xl font-bold text-slate-800">Methode + Ausbildung</div>
+                        <p class="text-sm text-slate-600 mt-2">Gerät allein ist vergleichbar. Das System schafft Bindung.</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                    <h3 class="text-xl font-semibold mb-3">Zentrale Erkenntnisse</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start"><span class="text-teal-600 mr-2">✔</span> <div><strong>Markt:</strong> Der Trend geht stark zu "Recovery" und apparativ gestützten Faszienbehandlungen. Schröpfen erlebt ein Revival durch Profisport (Cupping).</div></li>
+                        <li class="flex items-start"><span class="text-teal-600 mr-2">✔</span> <div><strong>Budgetkonkurrenz:</strong> 5.000 € sind ein "Mid-Tier" Invest. Es konkurriert weniger mit manuellen Tools (100€) als mit Einsteiger-Laser- oder Ultraschallgeräten.</div></li>
+                        <li class="flex items-start"><span class="text-teal-600 mr-2">✔</span> <div><strong>Wirtschaftlichkeit:</strong> Bei einem Zusatzpreis von 15€ pro Behandlung amortisiert sich das Gerät bei nur 2 Patienten täglich in ca. 8 Monaten.</div></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="market" class="tab-content">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4 text-slate-800">Marktanalyse: Österreich & DACH</h2>
+                <p class="text-lg text-slate-600 mb-8">
+                    In diesem Bereich wird die Größe des adressierbaren Marktes quantifiziert. Die Daten basieren auf strukturierten Schätzungen aus Branchenberichten (WKO, Statistik Austria). Die Diagramme zeigen die Verteilung der potenziellen Käufergruppen auf, um Marketing-Ressourcen optimal zu allokieren.
+                </p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <h3 class="text-xl font-semibold mb-4 text-center">Verteilung B2B-Kunden (Österreich)</h3>
+                        <p class="text-sm text-slate-500 mb-4 text-center">Gesamtpotenzial: ca. 15.500 Einrichtungen. Der größte Hebel liegt bei Masseuren und Physiotherapeuten.</p>
+                        <div class="chart-container">
+                            <canvas id="marketChartAT"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                            <h3 class="text-xl font-semibold mb-3">Skalierung: DACH-Markt</h3>
+                            <p class="text-sm text-slate-600 mb-4">Deutschland und die Schweiz multiplizieren das Marktpotenzial enorm, erfordern aber ein differenziertes Vertriebsnetz.</p>
+                            <div class="flex justify-between items-center border-b py-2">
+                                <span class="font-medium">Deutschland (Physio/Massage)</span>
+                                <span class="text-teal-600 font-bold">ca. 85.000 Praxen</span>
+                            </div>
+                            <div class="flex justify-between items-center border-b py-2">
+                                <span class="font-medium">Schweiz (Therapiezentren)</span>
+                                <span class="text-teal-600 font-bold">ca. 12.000 Praxen</span>
+                            </div>
+                            <div class="flex justify-between items-center py-2">
+                                <span class="font-medium">Wellnesshotels (DACH)</span>
+                                <span class="text-teal-600 font-bold">ca. 4.500 Premium-Häuser</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-teal-50 p-6 rounded-xl border border-teal-100">
+                            <h3 class="text-lg font-semibold text-teal-800 mb-2">Globale Makro-Trends</h3>
+                            <ul class="text-sm text-teal-900 space-y-2">
+                                <li>📈 <strong>Sport Recovery:</strong> Massive Nachfrage nach passiver Regeneration.</li>
+                                <li>📈 <strong>Biohacking:</strong> Hightech-Lösungen für traditionelle Methoden (z.B. Vakuumtherapie).</li>
+                                <li>📈 <strong>Medical Wellness:</strong> Hotels rüsten medizinisch auf, um sich vom Standard-Spa abzuheben.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="targets" class="tab-content">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4 text-slate-800">Zielgruppenanalyse</h2>
+                <p class="text-lg text-slate-600 mb-8">
+                    Nicht jede Praxis kauft ein 5.000 € Gerät. Diese Sektion analysiert die Kernzielgruppen hinsichtlich ihrer Investitionsbereitschaft, Kaufmotive und Barrieren. Das Radar-Diagramm vergleicht die Eignung der Gruppen für den Vertrieb des Schröpfmasters.
+                </p>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Zielgruppen-Fit: Wo ist der Verkauf am einfachsten?</h3>
+                    <p class="text-sm text-slate-500 mb-6 text-center">Bewertung von 1 (niedrig) bis 5 (hoch). Physiotherapie und Premium-Spas zeigen die beste Kombination aus Budget und Bedarf.</p>
+                    <div class="chart-container">
+                        <canvas id="targetRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-teal-400 transition-colors">
+                        <div class="text-2xl mb-2">🏥</div>
+                        <h3 class="text-xl font-bold mb-2">Physiotherapeuten</h3>
+                        <p class="text-sm text-slate-600 mb-4">Hohes fachliches Verständnis. Suchen nach Entlastung der eigenen Hände (Ergonomie) und Evidenz.</p>
+                        <ul class="text-sm space-y-1 text-slate-700">
+                            <li><strong>Investitionsbereitschaft:</strong> Hoch (gewohnt an Geräte >10k€ wie Ultraschall).</li>
+                            <li><strong>Kaufmotiv:</strong> Zeitersparnis, Faszienlösung, Entlastung der Handgelenke.</li>
+                            <li><strong>Barriere:</strong> Benötigen Studien / medizinischen Beweis der Wirksamkeit.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-teal-400 transition-colors">
+                        <div class="text-2xl mb-2">💆</div>
+                        <h3 class="text-xl font-bold mb-2">Wellness & Spa Hotels</h3>
+                        <p class="text-sm text-slate-600 mb-4">Fokus auf Premium-Gasterlebnis. Suchen nach "Signature Treatments", die hohe Margen bringen.</p>
+                        <ul class="text-sm space-y-1 text-slate-700">
+                            <li><strong>Investitionsbereitschaft:</strong> Sehr Hoch.</li>
+                            <li><strong>Kaufmotiv:</strong> Exklusivität, neues Treatment für das Spa-Menü, High-Tech-Image.</li>
+                            <li><strong>Barriere:</strong> Gerät muss optisch ansprechend (leise!) und für wechselndes Personal leicht bedienbar sein.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-teal-400 transition-colors">
+                        <div class="text-2xl mb-2">👐</div>
+                        <h3 class="text-xl font-bold mb-2">Heil- & Gewerbliche Masseure</h3>
+                        <p class="text-sm text-slate-600 mb-4">Kennen Schröpfen als Basis-Technik. Suchen nach einem Upgrade für ihre Praxis.</p>
+                        <ul class="text-sm space-y-1 text-slate-700">
+                            <li><strong>Investitionsbereitschaft:</strong> Mittel (5.000€ ist oft eine große Ausgabe).</li>
+                            <li><strong>Kaufmotiv:</strong> Umsatzsteigerung durch "Premium-Massage", physische Entlastung.</li>
+                            <li><strong>Barriere:</strong> Preis. Konkurriert mit manuellen Gläsern für 50€. Ratenzahlung wichtig!</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:border-teal-400 transition-colors">
+                        <div class="text-2xl mb-2">🏃</div>
+                        <h3 class="text-xl font-bold mb-2">Sporttherapie & Vereine</h3>
+                        <p class="text-sm text-slate-600 mb-4">Hochleistungssport. Fokus auf extrem schnelle Regeneration (Recovery).</p>
+                        <ul class="text-sm space-y-1 text-slate-700">
+                            <li><strong>Investitionsbereitschaft:</strong> Mittel bis Hoch.</li>
+                            <li><strong>Kaufmotiv:</strong> Laktatabbau, Faszien-Release, Nachahmung von US-Trends.</li>
+                            <li><strong>Barriere:</strong> Platzhirsche wie Theragun / Compex dominieren den Markt bereits.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="competition" class="tab-content">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4 text-slate-800">Wettbewerbsumfeld & Budget</h2>
+                <p class="text-lg text-slate-600 mb-8">
+                    Der Wettbewerb findet nicht nur mit anderen Schröpfgeräten statt (Direkt), sondern auch mit Technologien, die das gleiche Problem lösen (Funktional), und Geräten im gleichen Preissegment (Budget). Der Scatter-Plot zeigt auf, wie der Schröpfmaster positioniert ist.
+                </p>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 mb-8">
+                    <h3 class="text-xl font-semibold mb-2 text-center">Positionierungs-Matrix: Preis vs. Therapieumfang</h3>
+                    <p class="text-sm text-slate-500 mb-4 text-center">Schröpfmaster besetzt eine lukrative Nische: Signifikant professioneller als Handheld-Tools, aber günstiger als große Klinikgeräte.</p>
+                    <div class="chart-container">
+                        <canvas id="competitorScatter"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-3 border-b pb-2">1. Direkter Wettbewerb</h4>
+                        <p class="text-xs text-slate-500 mb-2">Vakuum / Schröpfen</p>
+                        <ul class="text-sm space-y-2">
+                            <li><strong>LPG Endermologie:</strong> ~15.000€+ (Klinikniveau, Beauty-Fokus)</li>
+                            <li><strong>AcuVac:</strong> ~3.000€ (Stärkster Direktkonkurrent)</li>
+                            <li><strong>Pneumatron:</strong> ~4.000€ (Sehr etabliert, leicht verstaubtes Image)</li>
+                            <li><strong>China-Pumps:</strong> ~100€ (Keine Pulsation, manuelle Pflege)</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-3 border-b pb-2">2. Funktions-Wettbewerb</h4>
+                        <p class="text-xs text-slate-500 mb-2">Faszien & Recovery</p>
+                        <ul class="text-sm space-y-2">
+                            <li><strong>Storz Shockwave:</strong> ~12.000€ (Der Goldstandard, invasiver)</li>
+                            <li><strong>Theragun PRO:</strong> ~500€ (Percussion, nicht absaugend)</li>
+                            <li><strong>IASTM Tools:</strong> ~200€ (Manuelle Kratz-Tools, anstrengend)</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-50 p-5 rounded-lg border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-3 border-b pb-2">3. Budget-Wettbewerb</h4>
+                        <p class="text-xs text-slate-500 mb-2">Investitionen 3k - 15k €</p>
+                        <ul class="text-sm space-y-2">
+                            <li><strong>BTL Lasertherapie:</strong> Hohe Evidenz, starke Konkurrenz um das Praxisbudget.</li>
+                            <li><strong>Gymna Ultraschall:</strong> Klassiker in der Physio.</li>
+                            <li><strong>Hochwertige Therapieliege:</strong> Oft bevorzugt vor neuen Geräten.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="roi" class="tab-content">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4 text-slate-800">Interaktiver ROI-Rechner</h2>
+                <p class="text-lg text-slate-600 mb-8">
+                    Der Kaufpreis von 5.000 € erfordert für viele Therapeuten einen Business Case. Nutzen Sie die Schieberegler unten, um zu simulieren, wie schnell sich der Schröpfmaster durch Zuzahlungen oder Privatabrechnungen amortisiert. Dieses Tool ist elementar für Vertriebsgespräche.
+                </p>
+
+                <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 flex flex-col md:flex-row gap-10">
+                    
+                    <!-- Inputs -->
+                    <div class="w-full md:w-1/2 space-y-6">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label class="font-semibold text-slate-700">Aufpreis pro Behandlung (€)</label>
+                                <span id="val-price" class="font-bold text-teal-600">20 €</span>
+                            </div>
+                            <input type="range" id="slider-price" min="5" max="80" step="5" value="20" class="w-full" oninput="calculateROI()">
+                            <p class="text-xs text-slate-500 mt-1">Zuzahlung des Patienten für die Spezialmethode.</p>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label class="font-semibold text-slate-700">Anwendungen pro Tag</label>
+                                <span id="val-patients" class="font-bold text-teal-600">3</span>
+                            </div>
+                            <input type="range" id="slider-patients" min="1" max="15" step="1" value="3" class="w-full" oninput="calculateROI()">
+                            <p class="text-xs text-slate-500 mt-1">Wie oft das Gerät täglich eingesetzt wird.</p>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label class="font-semibold text-slate-700">Arbeitstage pro Monat</label>
+                                <span id="val-days" class="font-bold text-teal-600">20</span>
+                            </div>
+                            <input type="range" id="slider-days" min="10" max="25" step="1" value="20" class="w-full" oninput="calculateROI()">
+                        </div>
+                    </div>
+
+                    <!-- Outputs -->
+                    <div class="w-full md:w-1/2 bg-slate-50 rounded-xl p-6 flex flex-col justify-center border border-slate-200">
+                        <div class="text-center mb-6">
+                            <h4 class="text-sm uppercase tracking-wide text-slate-500 mb-2">Zusatzumsatz pro Monat</h4>
+                            <div class="text-5xl font-bold text-slate-800"><span id="out-revenue">1.200</span> €</div>
+                        </div>
+                        
+                        <div class="border-t border-slate-200 pt-6 text-center">
+                            <h4 class="text-sm uppercase tracking-wide text-slate-500 mb-2">Gerät Amortisiert nach</h4>
+                            <div class="text-4xl font-bold text-teal-600"><span id="out-months">4.2</span> Monate</div>
+                            <p class="text-xs text-slate-500 mt-2">Berechnet bei einem Anschaffungspreis von 5.000 €.</p>
+                        </div>
+
+                        <div id="roi-feedback" class="mt-4 text-center text-sm font-medium text-green-600 bg-green-50 py-2 rounded">
+                            Hervorragender Return on Investment!
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
+                    <h3 class="font-bold text-blue-900 mb-2">Das Schulungs-Geschäftsmodell (Upselling)</h3>
+                    <p class="text-sm text-blue-800 leading-relaxed">
+                        Die Analyse des Fortbildungsmarktes zeigt: Therapeuten suchen stetig nach Zertifikaten. Durch den Aufbau der <strong>Schröpfmaster Akademie</strong> entsteht eine zweite Einnahmequelle. Ein 2-Tages-Zertifikatskurs (ca. 450 €) generiert nicht nur direkten Umsatz, sondern fungiert als bester Vertriebskanal für das Gerät selbst. Ausgebildete Therapeuten sind hochkonvertierende Leads.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy" class="tab-content">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4 text-slate-800">SWOT & Strategische Empfehlungen</h2>
+                <p class="text-lg text-slate-600 mb-8">
+                    Zusammenfassung der strategischen Position basierend auf der Markt-, Wettbewerbs- und Zielgruppenanalyse. Die Empfehlungen skizzieren den klarsten Weg zum Marktwachstum.
+                </p>
+
+                <!-- SWOT Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                    <div class="bg-green-50 p-6 rounded-xl border border-green-200">
+                        <h3 class="text-xl font-bold text-green-800 mb-3">Strengths (Stärken)</h3>
+                        <ul class="list-disc pl-5 text-green-900 text-sm space-y-1">
+                            <li>Hochwertige Verarbeitung / Premium-Image.</li>
+                            <li>Pulsationstechnologie ist manuellen Methoden überlegen.</li>
+                            <li>Entlastet den Therapeuten physisch massiv.</li>
+                            <li>Attraktiver ROI für Praxen.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-red-50 p-6 rounded-xl border border-red-200">
+                        <h3 class="text-xl font-bold text-red-800 mb-3">Weaknesses (Schwächen)</h3>
+                        <ul class="list-disc pl-5 text-red-900 text-sm space-y-1">
+                            <li>Erklärungsbedürftiges Produkt (muss "gespürt" werden).</li>
+                            <li>Investitionshürde für kleine Einzelpraxen (5.000€).</li>
+                            <li>Noch geringe Markenbekanntheit ggü. Großkonzernen (Zimmer, BTL).</li>
+                        </ul>
+                    </div>
+                    <div class="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                        <h3 class="text-xl font-bold text-blue-800 mb-3">Opportunities (Chancen)</h3>
+                        <ul class="list-disc pl-5 text-blue-900 text-sm space-y-1">
+                            <li>Boom im "Biohacking" und Sport Recovery Markt.</li>
+                            <li>Wellnesshotels suchen händeringend nach apparativen Behandlungen wg. Personalmangel.</li>
+                            <li>Aufbau eines zertifizierten Schulungssystems zur Kundenbindung.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-orange-50 p-6 rounded-xl border border-orange-200">
+                        <h3 class="text-xl font-bold text-orange-800 mb-3">Threats (Risiken)</h3>
+                        <ul class="list-disc pl-5 text-orange-900 text-sm space-y-1">
+                            <li>Günstige "White-Label" Geräte aus Asien drängen in den Markt.</li>
+                            <li>Trendverschiebung hin zu anderen Faszien-Tools (z.B. Massage-Guns).</li>
+                            <li>Budgetkürzungen im Gesundheitssektor.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="bg-slate-900 text-white p-8 rounded-2xl">
+                    <h3 class="text-2xl font-bold mb-6 text-teal-400">Strategische Kernempfehlungen</h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="text-lg font-bold mb-1">1. Positionierung: Methode statt Gerät</h4>
+                            <p class="text-slate-300 text-sm">Verkaufen Sie nicht "ein Gerät mit Pumpe", sondern das "Schröpfmaster-System". Dies beinhaltet das Gerät, eine Schulung, und Marketing-Material für die Praxis (z.B. Türschilder "Zertifizierte Schröpfmaster Praxis"). Das rechtfertigt den Premiumpreis und schützt vor asiatischen Billigkopien.</p>
+                        </div>
+                        <div class="border-t border-slate-700 pt-4">
+                            <h4 class="text-lg font-bold mb-1">2. Vertriebsfokus: Zweigleisig (Therapie & Spa)</h4>
+                            <p class="text-slate-300 text-sm"><strong>Track A (Physios):</strong> Fokus auf Ergonomie (Entlastung der Hände), Faszienlösung und ROI. Vertrieb über Fachmessen und eigene Akademie.<br><strong>Track B (Wellnesshotels):</strong> Fokus auf "Signature Treatments" und Lösung für den Masseure-Mangel. Vertrieb über Direktansprache der Spa-Manager in der 4/5-Sterne Hotellerie in AT/CH.</p>
+                        </div>
+                        <div class="border-t border-slate-700 pt-4">
+                            <h4 class="text-lg font-bold mb-1">3. Finanzierung & Barrierenabbau</h4>
+                            <p class="text-slate-300 text-sm">Bieten Sie zwingend Leasing- oder Ratenkaufmodelle an (z.B. "Ab 120 € im Monat"). Wenn das Gerät durch nur 3 Behandlungen im Monat seine Leasingrate einspielt, wird der Kauf zur reinen Rechenaufgabe ohne Risiko.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- Navigation Logic ---
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            // Reset nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-teal-600', 'text-white');
+                btn.classList.add('text-slate-300', 'hover:bg-slate-800');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            // Highlight active button
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.remove('text-slate-300', 'hover:bg-slate-800');
+            activeBtn.classList.add('bg-teal-600', 'text-white');
+
+            // Initialize/Update charts based on tab
+            if(tabId === 'market') initMarketCharts();
+            if(tabId === 'targets') initTargetChart();
+            if(tabId === 'competition') initCompetitorChart();
+            
+            window.scrollTo(0,0);
+        }
+
+        // --- Chart Config & State ---
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b';
+        
+        let marketChartInstance = null;
+        let targetChartInstance = null;
+        let compChartInstance = null;
+
+        // 1. Market Chart (Doughnut)
+        function initMarketCharts() {
+            if (marketChartInstance) return;
+            const ctx = document.getElementById('marketChartAT').getContext('2d');
+            marketChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Physiotherapiepraxen', 'Gewerbliche Masseure', 'Wellnesshotels/Spas', 'Kosmetikstudios', 'Sportzentren'],
+                    datasets: [{
+                        data: [6200, 3800, 1500, 3000, 1000],
+                        backgroundColor: ['#0d9488', '#14b8a6', '#f59e0b', '#cbd5e1', '#64748b'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' ' + context.label + ': ~' + context.raw + ' Einrichtungen';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Target Radar Chart
+        function initTargetChart() {
+            if (targetChartInstance) return;
+            const ctx = document.getElementById('targetRadarChart').getContext('2d');
+            targetChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Verfügbares Budget', 'Bedarf (Faszien/Recovery)', 'Patientenvolumen', 'Offenheit für Innovation', 'Selbstzahler-Anteil'],
+                    datasets: [
+                        {
+                            label: 'Physiotherapeuten',
+                            data: [4, 5, 5, 3, 3],
+                            backgroundColor: 'rgba(13, 148, 136, 0.2)',
+                            borderColor: '#0d9488',
+                            pointBackgroundColor: '#0d9488',
+                        },
+                        {
+                            label: 'Wellnesshotels',
+                            data: [5, 3, 4, 4, 5],
+                            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                            borderColor: '#f59e0b',
+                            pointBackgroundColor: '#f59e0b',
+                        },
+                        {
+                            label: 'Masseure',
+                            data: [2, 4, 4, 3, 4],
+                            backgroundColor: 'rgba(100, 116, 139, 0.2)',
+                            borderColor: '#64748b',
+                            pointBackgroundColor: '#64748b',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e2e8f0' },
+                            grid: { color: '#e2e8f0' },
+                            pointLabels: { font: { size: 12 } },
+                            ticks: { min: 0, max: 5, stepSize: 1, display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. Competitor Scatter Plot
+        function initCompetitorChart() {
+            if (compChartInstance) return;
+            const ctx = document.getElementById('competitorScatter').getContext('2d');
+            compChartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Schröpfmaster',
+                            data: [{ x: 5000, y: 85 }],
+                            backgroundColor: '#0d9488',
+                            pointRadius: 10,
+                            pointHoverRadius: 12
+                        },
+                        {
+                            label: 'Direkte Konkurrenz (Vakuum)',
+                            data: [{ x: 3000, y: 60 }, { x: 4000, y: 65 }, { x: 15000, y: 95 }, { x: 150, y: 15 }],
+                            backgroundColor: '#94a3b8',
+                            pointRadius: 6
+                        },
+                        {
+                            label: 'Funktionale Konkurrenz (Recovery)',
+                            data: [{ x: 12000, y: 90 }, { x: 500, y: 40 }, { x: 200, y: 25 }],
+                            backgroundColor: '#f59e0b',
+                            pointRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Preis / Investition (€)' },
+                            type: 'linear',
+                            position: 'bottom',
+                            min: 0,
+                            max: 16000,
+                            ticks: { callback: function(value) { return value + ' €'; } }
+                        },
+                        y: {
+                            title: { display: true, text: 'Therapieumfang & Professionalität (Index)' },
+                            min: 0,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    let names = {
+                                        "5000,85": "Schröpfmaster",
+                                        "3000,60": "AcuVac",
+                                        "4000,65": "Pneumatron",
+                                        "15000,95": "LPG Endermologie",
+                                        "150,15": "China-Pumps",
+                                        "12000,90": "Storz Shockwave",
+                                        "500,40": "Theragun PRO",
+                                        "200,25": "IASTM Tools"
+                                    };
+                                    let key = ctx.raw.x + "," + ctx.raw.y;
+                                    return (names[key] || "Gerät") + ": " + ctx.raw.x + "€";
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- ROI Calculator Logic ---
+        function calculateROI() {
+            const price = parseFloat(document.getElementById('slider-price').value);
+            const patients = parseFloat(document.getElementById('slider-patients').value);
+            const days = parseFloat(document.getElementById('slider-days').value);
+            const deviceCost = 5000;
+
+            // Update UI labels
+            document.getElementById('val-price').innerText = price + ' €';
+            document.getElementById('val-patients').innerText = patients;
+            document.getElementById('val-days').innerText = days;
+
+            // Calculate
+            const monthlyRevenue = price * patients * days;
+            const monthsToAmortize = deviceCost / monthlyRevenue;
+
+            // Update Outputs
+            document.getElementById('out-revenue').innerText = monthlyRevenue.toLocaleString('de-DE');
+            document.getElementById('out-months').innerText = monthsToAmortize.toFixed(1);
+
+            // Feedback logic
+            const feedbackEl = document.getElementById('roi-feedback');
+            if(monthsToAmortize <= 3) {
+                feedbackEl.className = "mt-4 text-center text-sm font-medium text-green-700 bg-green-100 py-2 rounded";
+                feedbackEl.innerText = "Hervorragender Return on Investment! (< 3 Monate)";
+            } else if (monthsToAmortize <= 8) {
+                feedbackEl.className = "mt-4 text-center text-sm font-medium text-blue-700 bg-blue-100 py-2 rounded";
+                feedbackEl.innerText = "Sehr solider Business Case. Gut verkaufbar.";
+            } else {
+                feedbackEl.className = "mt-4 text-center text-sm font-medium text-orange-700 bg-orange-100 py-2 rounded";
+                feedbackEl.innerText = "Amortisation dauert länger. Leasing empfehlen!";
+            }
+        }
+
+        // Initialize ROI on load
+        calculateROI();
+
+    </script>
+</body>
+</html>
